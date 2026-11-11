@@ -1,0 +1,35 @@
+# 人物卡模板（bible/characters/<id>.yaml）
+# 五件套 + 声音是核心；不写外貌清单，写压力下的选择
+id: char-id                  # 英文短横线小写
+name: 角色名
+role: protagonist            # protagonist / antagonist / supporting
+
+# —— 五件套（全部必填）——
+want: 外在目标（具体可追，一句话）
+fear: 内在恐惧（与 want 构成冲突）
+secret: 绝不让别人知道的事
+lie: 对自己撒的谎（他真心相信的假话）
+wound: 哪一年被什么事改变
+
+arc: 一句话人物弧线（从…到…）
+
+# —— 声音（遮名可辨）——
+voice_samples:               # 5 句只有他会说的话
+  - 台词一
+  - 台词二
+  - 台词三
+  - 台词四
+  - 台词五
+voice_rules:                 # 可执行指令，不写"温柔/强势"形容词
+  - 短句
+  - 爱用反问
+never_say:                   # ≥2 句他绝不会说的话
+  - 你听我解释
+
+# —— 随时间变化的状态（NovelCrafter 式 progressions）——
+progressions:
+  - { at: e01, state: 初始状态一句话 }
+  - { at: e06, state: 转变后状态一句话 }
+
+visible_from: 1              # 从第几集起对模型可见（防剧透）
+version: 1

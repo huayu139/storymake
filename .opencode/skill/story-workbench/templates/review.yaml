@@ -1,0 +1,23 @@
+# 评审模板（episodes/eNN/review.yaml）
+round: 1
+scores:                       # 每项 1-5，evidence 必须引用原文
+  hook: { score: 0, evidence: "" }
+  causality: { score: 0, evidence: "" }
+  character_consistency: { score: 0, evidence: "" }
+  voice_distinctness: { score: 0, evidence: "" }
+  value_shift: { score: 0, evidence: "" }
+  information_management: { score: 0, evidence: "" }
+  emotional_payoff: { score: 0, evidence: "" }
+  originality: { score: 0, evidence: "" }
+issues:
+  - code: info-leak           # 规则码见 continuity-rules.md
+    severity: blocker         # blocker / warning
+    evidence: 原文引用
+    location: script.md#L0
+verdict: needs_revision       # needs_revision / approved
+total: 0
+threshold: 32                 # 通过阈值（可按项目调整）
+fix_top3:                     # needs_revision 时必填，回 S6 只修这 3 处
+  - 需修改处一
+  - 需修改处二
+  - 需修改处三

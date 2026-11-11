@@ -1,0 +1,36 @@
+# 故事项目：只在本地保留，不进入仓库
+projects/*
+!projects/.gitkeep
+
+# 本地模型配置（可能含 API Key）
+opencode.json
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 快照与导出（可由脚本重新生成）
+STATUS.md
+PROJECT.md
+CONTINUITY.md
+exports/
+
+# 编辑器与系统
+.DS_Store
+.~lock.*
+*.swp
+*.swo
+*.log
+
+# Codex / OpenCode 本地缓存
+.codex/
+.opencode/cache/

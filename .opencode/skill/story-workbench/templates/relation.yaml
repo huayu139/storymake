@@ -1,0 +1,9 @@
+# 关系边模板（bible/relations.yaml 数组元素）
+from: char-a                 # 必须是已存在的人物 id
+to: char-b
+type: 关系类型（前恋人/宿敌/血亲/上下级…）
+power_diff: 谁占优 + 在哪方面占优   # 必须不对称，不许"均等"
+dependency: 谁需要谁、需要什么资源
+unsaid: 没说出口的那句话（信息差核心，与引擎相关）
+tension: 这段关系的日常张力形态
+flip_episode: 0              # 预计翻脸/反转集，0=未定；分布要错开

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Story Lab · 故事工作台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">秤</span>
+      <div>
+        <div class="brand-title">Story Lab</div>
+        <div class="brand-sub">长连载故事工作台 · 只读看板</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <select id="project-select" aria-label="项目"></select>
+      <button id="refresh-btn" class="btn" title="重新读取磁盘">刷新</button>
+      <span id="health-dot" class="dot" title="服务状态"></span>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <a href="#/overview" data-view="overview">总览</a>
+    <a href="#/episodes" data-view="episodes">分集</a>
+    <a href="#/bible" data-view="bible">故事圣经</a>
+    <a href="#/structure" data-view="structure">结构</a>
+    <a href="#/continuity" data-view="continuity">连续性</a>
+    <a href="#/decisions" data-view="decisions">决策日志</a>
+  </nav>
+
+  <main id="app">
+    <div class="loading">正在读取项目文件…</div>
+  </main>
+
+  <footer class="foot">
+    <span>文件为唯一事实源 · 本页面只读，不修改任何项目文件</span>
+    <span id="generated"></span>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# 场景卡模板（episodes/eNN/cards.yaml 数组元素）—— 生成剧本的"合同"
+scene_id: e01-sc01
+pov: char-id                 # 视角人物
+location: 具体地点
+time: 日/夜/清晨…
+cast: [char-a, char-b]       # 2~3 人，id 必须已存在
+objective: 谁要什么（一句话，具体）
+obstacle: 谁/什么挡着他
+
+value_before: 被动/被控制     # 必须 != value_after
+value_after: 主动/掌握筹码
+
+must_happen:                 # 2~3 件具体的事，不写"推进剧情"空话
+  - 具体事件一
+  - 具体事件二
+must_not_happen:             # 硬边界
+  - 不能揭露 X
+  - 不能发生肢体冲突
+
+information_delta:            # 信息差四栏
+  char-a: 他本场确认了…
+  char-b: 他知道…
+  audience: 观众比角色多知道…
+  hidden: 谁都不知道的（导演/评审可见，演员不可见）
+
+turn: 本场转折一句话（因为X所以Y但是Z 的 Z）
+cliffhanger_type: ""          # 仅该集最后一场必填，与 hooks.yaml 一致
+flashback: false              # 闪回场标记（涉及已退场人物时必填）
+estimated_seconds: 30

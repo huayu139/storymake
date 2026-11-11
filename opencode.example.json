@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "your-provider/your-model",
+  "provider": {
+    "your-provider": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Your Provider",
+      "options": {
+        "baseURL": "{env:OPENCODE_BASE_URL}",
+        "apiKey": "{env:OPENCODE_API_KEY}"
+      },
+      "models": {
+        "your-model": {
+          "name": "Your Model"
+        }
+      }
+    }
+  }
+}

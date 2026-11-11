@@ -1,0 +1,8 @@
+# 伏笔/悬念模板（structure/threads.yaml 数组元素）
+id: t-01
+type: 伏笔                   # 伏笔 / 悬念
+planted_at: 1                # 埋设集
+planned_payoff: 6            # 计划回收集，必须 > planted_at
+status: planted              # planted / building / paid / dropped
+description: 一句话说明
+dropped_reason: ""           # status=dropped 时必填

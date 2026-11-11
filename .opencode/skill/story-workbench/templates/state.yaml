@@ -1,0 +1,20 @@
+# 集末状态模板（episodes/eNN/state.yaml）—— 下一集的输入
+characters:
+  char-id:
+    location: 当前位置
+    injured: false
+    holds: [持有的道具]
+    relationship_changes: ["与 char-b：信任 → 怀疑"]
+    dead: false               # C1 连续性校验依据
+    written_out: false        # 是否已退场
+    knows:                    # 生成对白时只注入这三项
+      - 本集实际透露/确认的事
+    believes:
+      - 他本集形成的判断
+    suspects:
+      - 他的怀疑
+    must_not_know:            # 硬约束，未揭露则保持
+      - 仍然不知道的秘密
+props:
+  道具id: { status: 当前状态, holder: 持有者或空 }
+open_threads: [t-01]          # 本集结束时未回收的伏笔 id

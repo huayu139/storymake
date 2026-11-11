@@ -1,0 +1,31 @@
+{
+  "comment": "桥段黑名单：生成时命中即换角度重写。可按项目在 project.yaml 中覆盖或追加。",
+  "banned": [
+    {"id": "amnesia", "name": "车祸失忆", "note": "用失忆强行制造信息差"},
+    {"id": "ceo-forcible", "name": "霸总壁咚/强吻", "note": "以冒犯当甜"},
+    {"id": "kneel-forgive", "name": "下跪求原谅", "note": "无代价和解"},
+    {"id": "twin-switch", "name": "双胞胎互换", "note": "靠长相换人推进剧情"},
+    {"id": "terminal-last-minute", "name": "绝症突然出现", "note": "无铺垫的绝症转折"},
+    {"id": "mishearing", "name": "关键对话被偷听/听错", "note": "零成本制造误会"},
+    {"id": "white-tonight", "name": "一夜白头/吐血", "note": "夸张身体反应替代表演"},
+    {"id": "regression-revenge", "name": "重生复仇打脸全家", "note": "模板化逆袭，慎用于都市题材"},
+    {"id": "slap-forgiven", "name": "打一巴掌立刻和好", "note": "冲突无残留"},
+    {"id": "amnesia-pregnancy", "name": "带球跑/五年后携娃归来", "note": "时间跳跃解决一切"},
+    {"id": "evil-stepmother", "note": "恶毒继母/婆婆工具人", "name": "反派只会使坏没有动机"},
+    {"id": "rain-confession", "name": "雨中表白/追车", "note": "场景俗套需强反转才可用"},
+    {"id": "contract-marriage", "name": "契约婚姻", "note": "若用须有独特引擎支撑"},
+    {"id": "face-slap-live", "note": "直播当众打脸", "name": "直播打脸爽文模板"}
+  ],
+  "ai_isms": [
+    "眼中闪过一丝",
+    "不禁",
+    "仿佛在诉说着",
+    "深吸一口气",
+    "嘴角勾起一抹弧度",
+    "空气仿佛凝固",
+    "他/她知道，这是",
+    "心中五味杂陈",
+    "时间仿佛静止",
+    "一抹不易察觉的"
+  ]
+}

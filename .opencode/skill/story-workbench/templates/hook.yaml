@@ -1,0 +1,10 @@
+# 分集钩子模板（structure/hooks.yaml 数组元素）
+episode: 1
+movement: 1                  # 所属乐章 1-5
+question_raised: 本集提出的新问题
+question_left_open: 本集结尾留给观众的问题   # 必填，无则废集
+cliffhanger_type: 揭露        # 揭露/反转/倒计时/闯入；相邻集不得重复
+value_before: 本集开始时的价值状态（信任/安全/尊严…）
+value_after: 本集结束时的价值状态（必须 != value_before）
+pinned: false                # 钉死集标记，与 movements.yaml 一致
+note: 单集三段式备注——前5秒钩子 / 60%处转折 / 末5秒悬念
