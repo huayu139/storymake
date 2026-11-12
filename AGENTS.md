@@ -4,6 +4,13 @@
 - 代码注释也尽量使用中文
 - 代码本身、标识符仍使用英文命名规范
 
+## 项目级凭证与迁移
+
+- Git 部署密钥放在 `.keys/`（私钥 `id_ed25519_storymake`、公钥 `.pub`、包装器 `git-ssh.sh`），随项目目录整体迁移。
+- `.keys/` 已在 `.gitignore` 中排除，**永不提交**；GitHub 上只登记公钥。
+- 推送用 `scripts/push.sh`，或 `GIT_SSH_COMMAND="$PWD/.keys/git-ssh.sh" git push`。
+- 换机器：整目录 `rsync`/`tar` 复制，不要只 `git clone`；详见 `.keys/README.md`。
+
 ## 在 Codex 中使用
 
 - 本项目是故事创作工作台，Codex 技能位于 `.agents/skills/story-workbench`（软链到 `.opencode/skill/story-workbench`）。

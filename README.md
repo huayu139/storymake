@@ -203,6 +203,24 @@ python3 evals/run_evals.py
 
 ---
 
+## 迁移与凭证（.keys）
+
+项目的 Git 推送凭证放在 `.keys/`（私钥 + 公钥 + 路径自适应的 `git-ssh.sh`），随整个项目目录一起迁移，不依赖 `~/.ssh` 与 `HOME`。
+
+- `.keys/` 已被 `.gitignore` 排除，**永不进入 Git**；GitHub 上只登记公钥（Deploy key，需 Allow write access）。
+- 推送：
+
+```bash
+scripts/push.sh
+# 或
+GIT_SSH_COMMAND="$PWD/.keys/git-ssh.sh" git push
+```
+
+- 迁移到新机器用整目录复制（`rsync` / `tar` / `scp`）；只做 `git clone` 不会带上 `.keys/`。
+- `.keys/` 丢失时重新生成：`ssh-keygen -t ed25519 -N '' -C storymake-deploy -f .keys/id_ed25519_storymake`，再到仓库 Settings → Keys 登记公钥。
+
+详见 [.keys/README.md](.keys/README.md)。
+
 ## 文档
 
 - [`docs/architecture.md`](docs/architecture.md)：分层、铁律、数据流

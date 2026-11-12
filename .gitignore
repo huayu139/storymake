@@ -34,3 +34,6 @@ exports/
 # Codex / OpenCode 本地缓存
 .codex/
 .opencode/cache/
+
+# 本地凭证目录（私钥/公钥，随整目录迁移，绝不入 Git）
+.keys/
