@@ -24,6 +24,14 @@
 | voice_samples | 5 句只有他会说的话 |
 | never_say | 至少 2 句他绝不会说的话 |
 | arc | 一句话人物弧线 |
+| persona | 个性：压力下的行为倾向，写可执行指令 |
+| appearance | 外表：年龄感、体型、脸与手（可拍） |
+| wardrobe | 穿着：标志性穿戴，可随 progressions 变化 |
+| signature | 特征：习惯动作、身体标记、随身物 |
+
+`persona / appearance / wardrobe / signature` 是**形象四件套**，QC 硬闸门（每项 ≥6 字），
+剧本里角色本集首次出场的 `【人物】` 行必须与它一致。
+剧本在场人物行若用简称或外号（"黄会长"vs"黄国平"），在 `aliases` 里列出来，否则对不上会记 W10。
 
 ## 生成方法（两步）
 

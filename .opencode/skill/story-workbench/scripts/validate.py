@@ -55,6 +55,20 @@ def cjk_len(text: str) -> int:
     return cjk + words
 
 
+# 指令块：【场景】标签行及其后的描述段（到下一个节拍/场次为止）、【人物】标签行。
+# 这些是给摄影、美术、演员看的**说明**，不占表演时长，估算台词时长时必须扣除。
+_DIRECTIVE_RE = re.compile(
+    r"^【场景】.*?(?=^【节拍|^## |\Z)"   # 【场景】块
+    r"|^【人物】[^\n]*\n?",               # 【人物】行
+    flags=re.S | re.M,
+)
+
+
+def performance_text(text: str) -> str:
+    """去掉场景/人物描述指令块后的表演正文（用于时长估算与桥段扫描）。"""
+    return _DIRECTIVE_RE.sub("", text or "")
+
+
 # ---------------------------------------------------------------- S1 立意
 def check_premise(proj: Path) -> None:
     p = proj / "bible/premise.md"
@@ -74,6 +88,9 @@ def check_premise(proj: Path) -> None:
 
 # ---------------------------------------------------------------- S2 人物
 REQUIRED_CHAR_FIELDS = ["want", "fear", "secret", "lie", "wound", "arc"]
+# 可拍的形象四件套：个性/外表/穿着/特征（剧本首次出场的【人物】行要与它一致）
+REQUIRED_CHAR_DESC_FIELDS = ["persona", "appearance", "wardrobe", "signature"]
+MIN_CHAR_DESC = 6  # 每项至少 6 个汉字，太短等于没写
 
 
 def load_characters(proj: Path) -> dict[str, dict]:
@@ -108,6 +125,14 @@ def check_characters(proj: Path) -> dict[str, dict]:
             blocker("C7-missing", f"人物 {cid} never_say 少于 2 句（当前 {len(ns)}）", loc)
         if not c.get("voice_rules"):
             warn("C7-missing", f"人物 {cid} 缺 voice_rules（声音规则）", loc)
+        # C11 形象四件套：个性/外表/穿着/特征（QC 硬闸门）
+        for f in REQUIRED_CHAR_DESC_FIELDS:
+            v = str(c.get(f) or "").strip()
+            if not v:
+                blocker("C11-card-persona", f"人物 {cid} 缺「{f}」描述", loc)
+            elif cjk_len(v) < MIN_CHAR_DESC:
+                blocker("C11-card-persona",
+                        f"人物 {cid} 的「{f}」仅 {cjk_len(v)} 字（至少 {MIN_CHAR_DESC} 字）", loc)
     return chars
 
 
@@ -266,6 +291,27 @@ def check_cards(proj: Path, chars: dict[str, dict], ep: int,
                 blocker("C7", f"{sid} 缺字段 {f_}", loc)
         if c.get("estimated_seconds", 0) > 90:
             warn("W6", f"{sid} 预估 {c.get('estimated_seconds')}s 偏长", loc)
+
+        # ---- C10 场景视觉三件套（QC 硬闸门）----
+        sd = str(c.get("scene_description") or "").strip()
+        if not sd:
+            blocker("C10-card-scene", f"{sid} 缺 scene_description（场景详细描述）", loc)
+        elif cjk_len(sd) < 20:
+            blocker("C10-card-scene",
+                    f"{sid} scene_description 仅 {cjk_len(sd)} 字（至少 20 字，写时间/地点/物件/风格）", loc)
+        props = c.get("props")
+        if not isinstance(props, list) or not props:
+            blocker("C10-card-props", f"{sid} 缺 props（本场关键物件清单，至少 1 件）", loc)
+        else:
+            for p in props:
+                if not isinstance(p, dict) or not str(p.get("name") or "").strip():
+                    blocker("C10-card-props", f"{sid} 的 props 含缺 name 的条目: {p!r}", loc)
+                elif not str(p.get("id") or "").strip():
+                    blocker("C10-card-props", f"{sid} 的 props「{p.get('name')}」缺 id", loc)
+        beats = c.get("visual_beats")
+        if not isinstance(beats, list) or len(beats) < 2:
+            blocker("C10-card-beats",
+                    f"{sid} visual_beats 需 ≥2 条（当前 {len(beats) if isinstance(beats, list) else 0}）", loc)
     # 末场悬念与钩子一致
     last, h = cards[-1], hooks_by_ep.get(ep)
     if h:
@@ -278,6 +324,131 @@ def check_cards(proj: Path, chars: dict[str, dict], ep: int,
 
 
 # ---------------------------------------------------------------- S6 剧本
+def split_scenes(text: str) -> list[tuple[str, str]]:
+    """按「## 场景 」切成 [(标题, 场景块)]，第一块片头会被丢弃。"""
+    parts = re.split(r"(?m)^(?=## 场景 )", text or "")
+    out: list[tuple[str, str]] = []
+    for i, p in enumerate(parts):
+        if i == 0 and not p.lstrip().startswith("## 场景"):
+            continue
+        first = p.splitlines()[0].strip() if p.strip() else ""
+        out.append((first, p))
+    return out
+
+
+def match_char(display: str, chars: dict[str, dict]) -> str | None:
+    """在场人物行的显示名 → 人物卡 id（name / 括号前基名 / aliases / 子串）。"""
+    d = (display or "").strip()
+    if not d:
+        return None
+    for cid, c in chars.items():
+        nm = str(c.get("name") or "")
+        base = re.split(r"[（(]", nm)[0].strip()
+        if d == nm or d == base:
+            return cid
+        for a in c.get("aliases") or []:
+            if d == str(a).strip():
+                return cid
+    for cid, c in chars.items():
+        nm = str(c.get("name") or "")
+        base = re.split(r"[（(]", nm)[0].strip()
+        if d in nm or (base and base in d):
+            return cid
+        for a in c.get("aliases") or []:
+            if str(a).strip() and str(a).strip() in d:
+                return cid
+    return None
+
+
+SCENE_TAGS = ("时间", "地点", "物件", "风格")
+CHAR_TAGS = ("个性", "外表", "穿着", "特征")
+
+
+def _tag_value(line: str, tag: str) -> str:
+    """取「标签：值」的值；支持全角/半角冒号与 ｜ 分隔。"""
+    m = re.search(rf"{tag}[：:]\s*([^｜|【\n]*)", line)
+    return (m.group(1) if m else "").strip()
+
+
+def _check_visual_qc(text: str, chars: dict[str, dict], loc: str) -> None:
+    """C10 场景描述 + C11 人物描述的剧本侧检查。"""
+    scenes = split_scenes(text)
+    if not scenes:
+        blocker("C10-script-scene", "剧本没有任何「## 场景 」段落", loc)
+        return
+    if not chars:
+        blocker("C0-missing", "人物卡缺失，无法校验【人物】描述", loc)
+        return
+
+    seen: set[str] = set()   # 本集已出场角色（含描述）
+    for i, (title, block) in enumerate(scenes, 1):
+        # ---------- 场景：【场景】行 + 四要素 + 描述段 ----------
+        m = re.search(r"^(【场景】[^\n]*)\n?(.*?)(?=^【节拍|^## |\Z)",
+                      block, flags=re.S | re.M)
+        if not m:
+            blocker("C10-script-scene",
+                    f"{title or '场景 ' + str(i)} 缺【场景】行（时间/地点/物件/风格 + 可拍描述）", loc)
+        else:
+            head, body = m.group(1), m.group(2)
+            for tag in SCENE_TAGS:
+                v = _tag_value(head, tag)
+                if not v:
+                    blocker("C10-script-scene-tags",
+                            f"{title or '场景 ' + str(i)} 的【场景】行缺「{tag}：」", loc)
+                elif cjk_len(v) < 2:
+                    blocker("C10-script-scene-tags",
+                            f"{title or '场景 ' + str(i)} 的「{tag}」内容过短", loc)
+            if cjk_len(body) < 30:
+                blocker("C10-script-scene-body",
+                        f"{title or '场景 ' + str(i)} 场景描述仅 {cjk_len(body)} 字"
+                        f"（标签之外还需 ≥30 字可拍描述）", loc)
+
+        # ---------- 人物：本集首次出场必须有【人物】行 ----------
+        persona_lines = [ln.strip() for ln in block.splitlines()
+                         if ln.strip().startswith("【人物】")]
+        first_in_scene: dict[str, str] = {}   # cid -> 显示名
+        # 只认紧跟场景标题的那一个括号行（其余（…）是动作/字幕说明）
+        cast_line = ""
+        blines = block.splitlines()
+        for k, ln in enumerate(blines):
+            s = ln.strip()
+            if s.startswith("（") and s.endswith("）"):
+                if k and blines[k - 1].strip().startswith("## 场景"):
+                    cast_line = s[1:-1]
+                break
+        for name in re.split(r"[、,，·/]", cast_line):
+            name = name.strip()
+            if not name:
+                continue
+            cid = match_char(name, chars)
+            if not cid:
+                warn("W10-name", f"{title or '场景 ' + str(i)} 在场人物「{name}」"
+                                 f"未匹配到人物卡（补 aliases 或核对 name）", loc)
+                continue
+            if cid not in seen:
+                first_in_scene.setdefault(cid, name)
+
+        for cid, display in first_in_scene.items():
+            nm = str(chars[cid].get("name") or display)
+            base = re.split(r"[（(]", nm)[0].strip()
+            hit = next((ln for ln in persona_lines
+                        if base in ln or display in ln), None)
+            if hit is None:
+                blocker("C11-script-persona",
+                        f"{title or '场景 ' + str(i)} 中「{display}」本集首次出场，"
+                        f"缺【人物】行（个性/外表/穿着/特征）", loc)
+            else:
+                for tag in CHAR_TAGS:
+                    v = _tag_value(hit, tag)
+                    if not v:
+                        blocker("C11-script-persona-tags",
+                                f"{title or '场景 ' + str(i)} 的【人物】{display} 缺「{tag}：」", loc)
+                    elif cjk_len(v) < 2:
+                        blocker("C11-script-persona-tags",
+                                f"{title or '场景 ' + str(i)} 的【人物】{display}「{tag}」内容过短", loc)
+            seen.add(cid)
+
+
 def collect_dead(proj: Path, up_to_ep: int) -> set[str]:
     """从 e01..e{up_to_ep-1} 的 state.yaml 收集 dead/written_out 人物。"""
     dead = set()
@@ -299,6 +470,9 @@ def check_script(proj: Path, chars: dict[str, dict], ep: int, hooks_by_ep: dict[
         blocker("C0-missing", f"episodes/e{ep:02d}/script.md 不存在（S6 未完成）", str(f))
         return
     loc = str(f)
+
+    # ---- C10/C11 场景与人物描述（QC 硬闸门）----
+    _check_visual_qc(text, chars, loc)
 
     # C4 信息泄露：must_not_know / hidden 字面出现在台词中
     # （确定性脚本能拦直接陈述；语义层面的泄露由 S7 subagent 评审覆盖）
@@ -338,10 +512,10 @@ def check_script(proj: Path, chars: dict[str, dict], ep: int, hooks_by_ep: dict[
             warn("W4", f"AI 命中「{w}」", loc)
     # W5 桥段黑名单
     check_cliches(text, loc)
-    # W6 时长（4.5 字/秒）
+    # W6 时长（4.5 字/秒；场景/人物描述是给制作看的说明，不计入表演时长）
     proj_cfg = load_yaml(proj / "project.yaml") or {}
     seconds = proj_cfg.get("seconds_per_episode", 90)
-    est = cjk_len(text) / 4.5
+    est = cjk_len(performance_text(text)) / 4.5
     if est > seconds * 1.2 or est < seconds * 0.5:
         warn("W6", f"预估时长 {est:.0f}s，目标 {seconds}s（±20% 外）", loc)
 

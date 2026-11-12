@@ -65,6 +65,18 @@ def cjk_len(text: str) -> int:
     return len(re.findall(r"[一-鿿]", text)) + len(re.findall(r"[A-Za-z]+", text))
 
 
+_DIRECTIVE_RE = re.compile(
+    r"^【场景】.*?(?=^【节拍|^## |\Z)"   # 【场景】块（标签行 + 描述段）
+    r"|^【人物】[^\n]*\n?",               # 【人物】行
+    flags=re.S | re.M,
+)
+
+
+def performance_text(text: str) -> str:
+    """与 validate.py 一致：扣除【场景】【人物】说明块，只留表演正文计时。"""
+    return _DIRECTIVE_RE.sub("", text or "")
+
+
 def as_int(value, default=0) -> int:
     try:
         return int(value)
@@ -210,7 +222,7 @@ def check_episodes(data: dict) -> None:
 
         # K7 时长
         if script:
-            est = cjk_len(script) / 4.5
+            est = cjk_len(performance_text(script)) / 4.5
             if est > data["target"] * 1.2 or est < data["target"] * 0.5:
                 warn("K7", f"e{ep:02d} 剧本约 {est:.1f}s，超出 {data['target']}s ±20% 区间",
                      rel(d / "script.md"))
@@ -274,7 +286,7 @@ def render(data: dict) -> str:
         r = e["review"] or {}
         review = (f"{r.get('total', '—')}/{r.get('threshold', '—')} {r.get('verdict', '—')}"
                   if r else "—")
-        dur = f"{cjk_len(e['script']) / 4.5:.1f}" if e["script"] else "—"
+        dur = f"{cjk_len(performance_text(e['script'])) / 4.5:.1f}" if e["script"] else "—"
         opens = ", ".join(map(str, st.get("open_threads") or [])) or "—"
         lines.append(f"| e{e['ep']:02d} | {dur} | {review} | {locs or '—'} | "
                      f"{len(st.get('props') or {})} | {opens} |")

@@ -74,6 +74,11 @@ secret: 她三年前隐瞒了一段通话记录
 lie: 我只是想查清楚，不为别的   # 对自己撒的谎
 wound: 姐姐车祸当晚她没接电话   # 创伤
 arc: 从逃避到直面             # 人物弧线一句话
+persona: 从逃避到直面的反面…  # 个性：压力下的行为倾向（可执行指令）
+appearance: 28 岁偏瘦，眼下发青  # 外表：年龄感、体型、脸与手（可拍）
+wardrobe: 旧夹克袖口磨白      # 穿着：标志性穿戴，可随 progressions 变化
+signature: 说谎前先摸耳垂     # 特征：习惯动作、身体标记、随身物
+aliases: [晚晚]               # 可选：剧本在场行里他的简称/外号
 voice_samples:              # 5 句只有他会说的话
   - 我不要解释，我要证据。
   - 你早就知道了，对吧？
@@ -131,6 +136,14 @@ pov: lin-wan                    # 视角人物
 location: 地下车库
 time: 夜
 cast: [lin-wan, gu-yanchen]
+scene_description: |          # ≥20 字：时间/地点/物件/风格，可拍（C10 必填）
+  深夜的地下车库，灯管嗡嗡响，只有她那辆车顶积着灰，
+  远处电梯口的指示灯是唯一的暖色。
+props:                        # 本场关键物件 ≥1 件（C10 必填）
+  - { id: dashcam, name: 行车记录仪, state: 被拿走, holder: gu-yanchen }
+visual_beats:                 # ≥2 条必须被镜头看到的细节（C10 必填）
+  - 车顶积灰被她擦掉一块，指印清晰
+  - 录音笔的红点在副驾一闪一闪
 objective: 林晚要拿到行车记录仪   # 本场目标
 obstacle: 顾彦辰先到一步，且知道她在找什么
 value_before: 被动/被控制

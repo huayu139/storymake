@@ -81,6 +81,18 @@ def cjk_len(text: str) -> int:
     return len(re.findall(r"[一-鿿]", text)) + len(re.findall(r"[A-Za-z]+", text))
 
 
+_DIRECTIVE_RE = re.compile(
+    r"^【场景】.*?(?=^【节拍|^## |\Z)"   # 【场景】块（标签行 + 描述段）
+    r"|^【人物】[^\n]*\n?",               # 【人物】行
+    flags=re.S | re.M,
+)
+
+
+def performance_text(text: str) -> str:
+    """与 validate.py 一致：扣除【场景】【人物】说明块，只留表演正文计时。"""
+    return _DIRECTIVE_RE.sub("", text or "")
+
+
 def as_int(value, default=0) -> int:
     try:
         return int(value)
@@ -192,8 +204,8 @@ def episode_info(proj: Path, ep: int, target_seconds: int, errors: list[str]) ->
         "scenes": len(cards_list),
         "card_seconds": card_seconds,
         "script": bool(script),
-        "script_chars": cjk_len(script),
-        "script_seconds": cjk_len(script) / 4.5 if script else 0.0,
+        "script_chars": cjk_len(performance_text(script)),
+        "script_seconds": cjk_len(performance_text(script)) / 4.5 if script else 0.0,
         "state": state,
         "review": review if isinstance(review, dict) else None,
         "review_total": total,
@@ -203,7 +215,8 @@ def episode_info(proj: Path, ep: int, target_seconds: int, errors: list[str]) ->
         "reviewer": (review or {}).get("reviewer", "") if isinstance(review, dict) else "",
         "warnings": warnings,
         "blockers": blockers,
-        "duration_over": bool(script) and target_seconds > 0 and (cjk_len(script) / 4.5) > target_seconds * 1.2,
+        "duration_over": bool(script) and target_seconds > 0
+                         and (cjk_len(performance_text(script)) / 4.5) > target_seconds * 1.2,
     }
 
 

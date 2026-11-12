@@ -4,6 +4,17 @@ pov: char-id                 # 视角人物
 location: 具体地点
 time: 日/夜/清晨…
 cast: [char-a, char-b]       # 2~3 人，id 必须已存在
+
+# —— 场景详细描述（QC 必填，剧本的【场景】行从这里来）——
+scene_description: |         # ≥20 字，写时间/地点/物件/风格：空间、陈设、光线、声音、气味、人流
+  凌晨五点半市场刚亮灯，水泥地上是隔夜鱼鳞和鞭炮纸屑，水氧机在脚边嗡嗡响，
+  白炽灯管有一根在闪；对面超市的充气拱门把晨光染成一片塑料红。
+props:                       # 本场关键物件，至少 1 件；id 与 state.yaml 的 props 对齐
+  - { id: prop-id, name: 物件名, state: 当前状态, holder: char-id }
+visual_beats:                # ≥2 条必须被镜头看到的细节，且服务本场 turn
+  - 鞭炮纸屑飘进水箱，水面荡开一圈红
+  - 老周捞纸屑的手停半秒，水珠从指缝滴回水箱
+
 objective: 谁要什么（一句话，具体）
 obstacle: 谁/什么挡着他
 

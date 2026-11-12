@@ -8,6 +8,7 @@
 退出码: 0 = 全绿；1 = 有回归。
 """
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -98,6 +99,10 @@ def base_project(n_episodes: int = 2) -> None:
             "want": "拿到存储卡", "fear": "真相毁掉家人", "secret": "隐瞒了通话记录",
             "lie": "我只是想查清楚", "wound": "姐姐车祸当晚没接电话",
             "arc": "从逃避到直面",
+            "persona": "信证据不信人，被噎住时反而更安静，逼到墙角才掀桌",
+            "appearance": "28 岁偏瘦，眼下发青，指节有旧握笔茧，左眉尾一道小疤",
+            "wardrobe": "男友风旧夹克袖口磨白，深色工装裤，背一个磨出毛边的电脑包",
+            "signature": "说谎前先摸耳垂，说真话时直视对方不眨眼，无意识敲两下桌面",
             "voice_samples": ["我不要解释，我要证据。", "你早就知道了，对吧？",
                               "这卡里有什么，你比我清楚。", "别跟我谈感情，谈证据。",
                               "七天，我等得起。"],
@@ -156,6 +161,15 @@ def good_card(ep: int, dead_cast: list | None = None, value_same: bool = False) 
     return {
         "scene_id": f"e{ep:02d}-sc01", "pov": "lin-wan",
         "location": "地下车库", "time": "夜",
+        "scene_description": (
+            "深夜的地下车库 B2 层，冷白灯管嗡嗡响，只有她那辆车顶还积着一层灰。"
+            "远处电梯口的指示灯是唯一的暖色，水泥地上留着两道新鲜轮胎印，"
+            "风从坡道口灌进来，把塑料袋吹到车轮底下。"
+        ),
+        "props": [{"id": "dashcam", "name": "行车记录仪", "state": "被拿走",
+                   "holder": "gu-yanchen"}],
+        "visual_beats": ["车顶积灰被她擦掉一块，指印清晰",
+                         "录音笔的红点在副驾一闪一闪"],
         "cast": dead_cast or ["lin-wan", "gu-yanchen"],
         "objective": "拿到行车记录仪", "obstacle": "顾彦辰先到一步",
         "value_before": "被动/被控制",
@@ -204,6 +218,13 @@ BASE_SCRIPT = """# 第 1 集
 
 ## 场景 1：地下库 · 夜
 （林晚、顾彦辰）
+
+【人物】林晚｜个性：信证据不信人，被噎住时反而更安静｜外表：28 岁偏瘦，眼下发青，指节有旧握笔茧｜穿着：男友风旧夹克袖口磨白，背包带勒出一道折痕｜特征：说谎前先摸耳垂，说真话时直视对方
+
+【人物】顾彦辰｜个性：把话绕三圈才说重点，永远留一个退路｜外表：35 岁发际线后退，下颌刮得发青，左手无名指有旧戒痕｜穿着：合身深灰夹克，袖扣一丝不苟，鞋尖擦得发亮｜特征：递东西前先在手里转半圈，笑起来只动嘴角
+
+【场景】时间：深夜 ｜ 地点：小区地下车库 B2 层 ｜ 物件：行车记录仪、录音笔、车库门禁卡 ｜ 风格：冷白灯管下的空旷，回声比人声晚半拍
+灯管嗡嗡响，只有她那辆车顶还积着一层灰。远处电梯口的指示灯是唯一的暖色，水泥地上留着两道新鲜的轮胎印，风从坡道口灌进来，把塑料袋吹到车轮底下。
 
 【节拍 1】林晚走向自己的车，顾彦辰已经站在电梯口。
 
@@ -385,6 +406,100 @@ def main() -> int:
     expect("K1", out, True, "连续性缺 state")
     results.append(("K1 exit=1", code == 1, ""))
     write(PROJ / "episodes/e02/state.yaml", good_state(2))
+
+    # ---------- 用例 10：场景与人物描述 QC（C10 / C11） ----------
+    c10c = PROJ / "episodes/e01/cards.yaml"
+    s10c = PROJ / "episodes/e01/script.md"
+
+    def mutate_card(field, broken):
+        """把 e01 第一张卡的 field 换成 broken（None=删字段），返回原值。"""
+        data = yaml.safe_load(c10c.read_text(encoding="utf-8"))
+        old = data[0].pop(field, None)
+        if broken is not None:
+            data[0][field] = broken
+        write(c10c, data)
+        return old
+
+    def restore_card(field, old):
+        data = yaml.safe_load(c10c.read_text(encoding="utf-8"))
+        data[0][field] = old
+        write(c10c, data)
+
+    # 场景卡：缺描述 / 描述过短 / 缺道具 / 缺视觉节拍
+    for label, rule, field, broken in [
+        ("缺 scene_description", "C10-card-scene", "scene_description", None),
+        ("scene_description 过短", "C10-card-scene", "scene_description", "太短"),
+        ("缺 props", "C10-card-props", "props", None),
+        ("visual_beats 不足", "C10-card-beats", "visual_beats", ["只有一条"]),
+    ]:
+        old = mutate_card(field, broken)
+        code, out = run_validate("--stage", "cards", "--episode", "1")
+        expect(rule, out, True, label)
+        results.append((f"{rule}·{label} exit=1", code == 1, ""))
+        restore_card(field, old)
+
+    # 人物卡：缺形象四件套
+    for field in ["persona", "appearance", "wardrobe", "signature"]:
+        cp = PROJ / "bible/characters/lin-wan.yaml"
+        data = yaml.safe_load(cp.read_text(encoding="utf-8"))
+        old = data.pop(field)
+        write(cp, data)
+        code, out = run_validate("--stage", "characters")
+        expect("C11-card-persona", out, True, f"人物卡缺 {field}")
+        results.append((f"C11-card·{field} exit=1", code == 1, ""))
+        data[field] = old
+        write(cp, data)
+
+    # 剧本：缺【场景】行 / 缺要素 / 描述过短
+    base_script = s10c.read_text(encoding="utf-8")
+
+    def mutate_script(broken: str):
+        s10c.write_text(broken, encoding="utf-8")
+
+    scene_block = re.search(r"【场景】[^\n]*\n[^\n]*\n", base_script).group(0)
+    mutate_script(base_script.replace(scene_block, ""))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    expect("C10-script-scene", out, True, "剧本缺【场景】行")
+    results.append(("C10-script-scene exit=1", code == 1, ""))
+
+    mutate_script(re.sub(r" *｜ *风格：[^｜\n]*", "", base_script, count=1))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    expect("C10-script-scene-tags", out, True, "【场景】缺风格")
+    results.append(("C10-script-scene-tags exit=1", code == 1, out))
+
+    short_scene = "【场景】时间：深夜 ｜ 地点：地下车库 ｜ 物件：录音笔 ｜ 风格：冷白灯管\n太短。\n\n"
+    mutate_script(base_script.replace(scene_block, short_scene))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    expect("C10-script-scene-body", out, True, "场景描述过短")
+    results.append(("C10-script-scene-body exit=1", code == 1, ""))
+
+    # 剧本：缺【人物】行 / 缺要素
+    mutate_script(re.sub(r"【人物】林晚[^\n]*\n", "", base_script))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    expect("C11-script-persona", out, True, "首次出场缺【人物】行")
+    results.append(("C11-script-persona exit=1", code == 1, ""))
+
+    mutate_script(base_script.replace("｜穿着：男友风旧夹克袖口磨白，背包带勒出一道折痕", ""))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    expect("C11-script-persona-tags", out, True, "【人物】缺穿着")
+    results.append(("C11-script-persona-tags exit=1", code == 1, ""))
+
+    # 描述块不计入表演时长（塞进超长【场景】描述，估算秒数必须不变）
+    _, clean_out = run_validate("--stage", "script", "--episode", "1")
+    clean_sec = (re.search(r"预估时长 (\d+)s", clean_out) or [None, None])[1]
+    pad = "【场景】时间：深夜 ｜ 地点：地下车库 ｜ 物件：录音笔 ｜ 风格：冷白灯管\n" + \
+          ("灯管嗡嗡响，水泥地反着冷光，回声比人声晚半拍。" * 15) + "\n\n"
+    mutate_script(base_script.replace(scene_block, scene_block + "\n" + pad))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    pad_sec = (re.search(r"预估时长 (\d+)s", out) or [None, None])[1]
+    results.append(("描述块不计时长（秒数不变）",
+                    code == 0 and clean_sec is not None and pad_sec == clean_sec,
+                    f"clean={clean_sec} pad={pad_sec}\n{out}"))
+    s10c.write_text(base_script, encoding="utf-8")
+
+    # 恢复后整包必须全绿
+    code, out = run_validate()
+    results.append(("QC 用例后全绿 exit=0", code == 0, out[-500:]))
 
     # ---------- 清理 ----------
     shutil.rmtree(PROJ, ignore_errors=True)
