@@ -30,6 +30,7 @@
 | 校验工具 | `scripts/validate.py` | — | 只读 | 可选，消费前自检 |
 | 汇总工具 | `scripts/status.py` | — | 只读 | 推荐复用 |
 | 对账工具 | `scripts/continuity.py` | — | 只读 | 跨集场景推荐 |
+| 提示词导出 | `scripts/prompt.py` | — | 只读 | 生图/生视频提示词拼装（锚点+卡片+人物四件套） |
 | Web API | `scripts/webview.py` | — | 只读 | 适合前端/远程消费 |
 | 回归测试 | `evals/run_evals.py` | — | 只读 | 开发期使用 |
 

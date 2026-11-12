@@ -69,6 +69,68 @@ def performance_text(text: str) -> str:
     return _DIRECTIVE_RE.sub("", text or "")
 
 
+# ---------------- C10 v2：结构化视觉字段与提示词级检查（docs/scene-prompt-design.md）----
+SHOT_SIZES = ("远景", "全景", "中景", "中近景", "近景", "特写")
+CAMERAS = ("固定", "推", "拉", "摇", "移", "跟", "环绕", "手持")
+# 软硬词：光线必须能区分质感，"很亮"这类不算描述
+_SOFT_HARD = ("柔", "硬", "直射", "漫射", "散射", "透")
+_FUZZY_DEFAULT = ["氛围感", "高级感", "唯美", "仿佛", "宛如", "不禁",
+                  "很有感觉", "意境", "电影感", "如梦似幻"]
+
+
+def load_fuzzy_words() -> list[str]:
+    """C10-fuzzy 模糊词黑名单（config/fuzzy-words.json，缺失时用内置默认）。"""
+    p = SKILL_DIR / "config/fuzzy-words.json"
+    if p.exists():
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            words = data.get("fuzzy_words")
+            if isinstance(words, list) and words:
+                return [str(w) for w in words]
+        except Exception:  # noqa: BLE001 — 配置坏掉退回默认，不阻断
+            pass
+    return _FUZZY_DEFAULT
+
+
+def load_scenes(proj: Path) -> dict[str, dict]:
+    """场景锚点库 bible/scenes.yaml；缺失或为空时返回 {}（不启用锚点检查）。"""
+    data = load_yaml(proj / "bible/scenes.yaml")
+    out: dict[str, dict] = {}
+    if isinstance(data, dict):
+        for s in data.get("scenes") or []:
+            if isinstance(s, dict) and s.get("id"):
+                out[str(s["id"])] = s
+    return out
+
+
+def match_scene(location: str, scenes: dict[str, dict]) -> dict | None:
+    """location → 锚点：任一 alias 与 location 互为子串即匹配（取 alias 最长者）。"""
+    loc = (location or "").strip()
+    if not loc or not scenes:
+        return None
+    best, best_len = None, 0
+    for s in scenes.values():
+        for a in [s.get("name", ""), *(s.get("aliases") or [])]:
+            a = str(a).strip()
+            if a and (a in loc or loc in a):
+                if len(a) > best_len:
+                    best, best_len = s, len(a)
+    return best
+
+
+def norm_camera(v: str) -> str:
+    """机位值归一：去掉「机位/镜头/运动」等后缀再比枚举。"""
+    return re.sub(r"(机位|镜头|运动)$", "", (v or "").strip())
+
+
+def find_fuzzy(text: str) -> str | None:
+    """返回文本命中的第一个模糊词，无命中返回 None。"""
+    for w in load_fuzzy_words():
+        if w in (text or ""):
+            return w
+    return None
+
+
 # ---------------------------------------------------------------- S1 立意
 def check_premise(proj: Path) -> None:
     p = proj / "bible/premise.md"
@@ -269,6 +331,7 @@ def check_cards(proj: Path, chars: dict[str, dict], ep: int,
         blocker("C0-missing", "cards.yaml 为空", str(f))
         return []
     loc = str(f)
+    scenes = load_scenes(proj)   # 场景锚点库（存在才启用 scene_ref / palette_core 校验）
     for c in cards:
         sid = c.get("scene_id", "?")
         # C3 价值翻转
@@ -299,6 +362,11 @@ def check_cards(proj: Path, chars: dict[str, dict], ep: int,
         elif cjk_len(sd) < 20:
             blocker("C10-card-scene",
                     f"{sid} scene_description 仅 {cjk_len(sd)} 字（至少 20 字，写时间/地点/物件/风格）", loc)
+        else:
+            hit = find_fuzzy(sd)
+            if hit:
+                blocker("C10-fuzzy", f"{sid} scene_description 命中模糊词「{hit}」"
+                                     f"（只写摄影机拍得到的可观察描述）", loc)
         props = c.get("props")
         if not isinstance(props, list) or not props:
             blocker("C10-card-props", f"{sid} 缺 props（本场关键物件清单，至少 1 件）", loc)
@@ -312,6 +380,54 @@ def check_cards(proj: Path, chars: dict[str, dict], ep: int,
         if not isinstance(beats, list) or len(beats) < 2:
             blocker("C10-card-beats",
                     f"{sid} visual_beats 需 ≥2 条（当前 {len(beats) if isinstance(beats, list) else 0}）", loc)
+
+        # ---- C10 v2：锚点引用 / 景别 / 机位 / 光线 / 色调（docs/scene-prompt-design.md）----
+        # 锚点库存在时才启用 scene_ref 与 palette_core 校验
+        if scenes:
+            ref = str(c.get("scene_ref") or "").strip()
+            if not ref:
+                blocker("C10-card-ref", f"{sid} 缺 scene_ref（引用 bible/scenes.yaml 场景锚点）", loc)
+            elif ref not in scenes:
+                blocker("C10-card-ref", f"{sid} scene_ref「{ref}」不在 bible/scenes.yaml 中", loc)
+            else:
+                # 引用的锚点必须与 location 真实相关（防挂错锚点造成画面漂移）
+                if match_scene(str(c.get("location") or ""), {ref: scenes[ref]}) is None:
+                    blocker("C10-card-ref",
+                            f"{sid} scene_ref「{ref}」与 location「{c.get('location')}」对不上"
+                            f"（alias 与 location 无交集）", loc)
+                # 色板必须包含锚点固定色，防跨集漂移
+                palette = str(c.get("palette") or "")
+                core = [str(x) for x in (scenes[ref].get("palette_core") or [])]
+                missing = [x for x in core if x not in palette]
+                if c.get("palette") and missing:
+                    blocker("C10-card-palette",
+                            f"{sid} palette 缺锚点固定色 {missing}（锚点 {ref} 的 palette_core）", loc)
+        shot = str(c.get("shot_size") or "").strip()
+        if not shot:
+            blocker("C10-card-shot", f"{sid} 缺 shot_size（景别）", loc)
+        elif shot not in SHOT_SIZES:
+            blocker("C10-card-shot",
+                    f"{sid} shot_size「{shot}」不在枚举 {'/'.join(SHOT_SIZES)}", loc)
+        cam = str(c.get("camera") or "").strip()
+        if not cam:
+            blocker("C10-card-shot", f"{sid} 缺 camera（机位/运镜）", loc)
+        elif norm_camera(cam) not in CAMERAS:
+            blocker("C10-card-shot",
+                    f"{sid} camera「{cam}」不在枚举 {'/'.join(CAMERAS)}", loc)
+        lighting = str(c.get("lighting") or "").strip()
+        if not lighting:
+            blocker("C10-card-light", f"{sid} 缺 lighting（光线：光源+软硬）", loc)
+        elif cjk_len(lighting) < 6 or "光" not in lighting:
+            blocker("C10-card-light",
+                    f"{sid} lighting「{lighting}」过短或不含「光」（≥6 字且写明光源）", loc)
+        elif not any(w in lighting for w in _SOFT_HARD):
+            blocker("C10-card-light",
+                    f"{sid} lighting「{lighting}」缺软硬词（柔/硬/直射/漫射/散射/透）", loc)
+        palette = str(c.get("palette") or "").strip()
+        if not palette:
+            blocker("C10-card-palette", f"{sid} 缺 palette（色调）", loc)
+        elif cjk_len(palette) < 4:
+            blocker("C10-card-palette", f"{sid} palette「{palette}」过短（≥4 字）", loc)
     # 末场悬念与钩子一致
     last, h = cards[-1], hooks_by_ep.get(ep)
     if h:
@@ -360,7 +476,8 @@ def match_char(display: str, chars: dict[str, dict]) -> str | None:
     return None
 
 
-SCENE_TAGS = ("时间", "地点", "物件", "风格")
+# 剧本【场景】行 8 标签（C10 v2：时间/地点 + 镜头四要素 + 物件/风格）
+SCENE_TAGS = ("时间", "地点", "景别", "机位", "光线", "色调", "物件", "风格")
 CHAR_TAGS = ("个性", "外表", "穿着", "特征")
 
 
@@ -395,13 +512,39 @@ def _check_visual_qc(text: str, chars: dict[str, dict], loc: str) -> None:
                 if not v:
                     blocker("C10-script-scene-tags",
                             f"{title or '场景 ' + str(i)} 的【场景】行缺「{tag}：」", loc)
-                elif cjk_len(v) < 2:
+                elif cjk_len(v) < 2 and tag != "机位":
+                    # 机位可为单字枚举（推/拉/摇/移/跟），由下方枚举校验兜底
                     blocker("C10-script-scene-tags",
                             f"{title or '场景 ' + str(i)} 的「{tag}」内容过短", loc)
+            # C10 v2：镜头四要素的枚举与质感校验
+            shot = _tag_value(head, "景别")
+            if shot and shot not in SHOT_SIZES:
+                blocker("C10-script-shot",
+                        f"{title or '场景 ' + str(i)} 景别「{shot}」不在枚举 "
+                        f"{'/'.join(SHOT_SIZES)}", loc)
+            cam = _tag_value(head, "机位")
+            if cam and norm_camera(cam) not in CAMERAS:
+                blocker("C10-script-shot",
+                        f"{title or '场景 ' + str(i)} 机位「{cam}」不在枚举 "
+                        f"{'/'.join(CAMERAS)}", loc)
+            light = _tag_value(head, "光线")
+            if light and ("光" not in light or not any(w in light for w in _SOFT_HARD)):
+                blocker("C10-script-light",
+                        f"{title or '场景 ' + str(i)} 光线「{light}」需含「光」和软硬词"
+                        f"（柔/硬/直射/漫射/散射/透）", loc)
+            tone = _tag_value(head, "色调")
+            if tone and cjk_len(tone) < 4:
+                blocker("C10-script-palette",
+                        f"{title or '场景 ' + str(i)} 色调「{tone}」过短（≥4 字）", loc)
             if cjk_len(body) < 30:
                 blocker("C10-script-scene-body",
                         f"{title or '场景 ' + str(i)} 场景描述仅 {cjk_len(body)} 字"
                         f"（标签之外还需 ≥30 字可拍描述）", loc)
+            hit = find_fuzzy(body)
+            if hit:
+                blocker("C10-fuzzy",
+                        f"{title or '场景 ' + str(i)} 描述段命中模糊词「{hit}」"
+                        f"（只写摄影机拍得到的可观察描述）", loc)
 
         # ---------- 人物：本集首次出场必须有【人物】行 ----------
         persona_lines = [ln.strip() for ln in block.splitlines()

@@ -1,7 +1,7 @@
 # Story Lab 创作工作台 · 计划书
 
 > 本文件是唯一进度权威。每完成一步立即更新"进度追踪"表；偏离计划时先改本文件再继续。
-> 最后更新：2026-11-12（QC 硬闸门 C10 场景描述 / C11 人物描述 / W10 在场人物对卡，e01–e10 全量回填完成；W5.2b 分镜表未开始）
+> 最后更新：2026-11-12（C10 v2 场景视觉与提示词层：调研→设计→锚点库→结构字段→8 标签→prompt.py 导出器→e01–e10 全量回填；W5.2b 分镜表未开始）
 
 ## 1. 一句话定位
 
@@ -59,6 +59,7 @@
 ├── docs/deliverables.md        ← 交付件与外部系统集成说明
 ├── docs/codex.md               ← 在 Codex 中使用本项目的说明
 ├── docs/w52-storyboard.md      ← W5.2 场景视觉层/分镜/导出/可写设计
+├── docs/scene-prompt-design.md ← C10 v2 调研结论 + 场景提示词构建思路与 QC 规则
 ├── .opencode/skill/story-workbench/
 │   ├── SKILL.md                ← 主工作流与闸门规则
 │   ├── references/
@@ -120,7 +121,7 @@ projects/<slug>/
 | W4 | 连续性 + 集末状态账本 + 10 集试播 + evals 全绿 | 通读无阻断矛盾；陷阱用例 100% 检出 | ✅ 完成：`continuity.py` + `stage-continuity.md`（K1–K8）；evals 29/29；10 集试播 10/10（e01–e10，continuity 0 BLOCKER/0 WARN）；e08/e09 为 31/32 force_pass，e03 最终验收与 e01 独立复评待用户确认 |
 | W5.1 | Web 只读查看器（MVP） | 浏览器可看总览/分集/单集详情；只读，不改事实源 | ✅ 完成（2026-11-10，`webview.py` + `web/`；7 个 API 端点与 7 个视图，绑定 0.0.0.0:8765） |
 | W5.2 | 场景视觉层 · 分镜 · 导出 · 可写（立项） | 设计文档落地，四个子阶段可独立验收 | 🚧 立项完成（2026-11-11，`docs/w52-storyboard.md`；实施未开始） |
-| W5.2a | 场景视觉层：cards 增 `scene_description`/`props`/`visual_beats`，S6 注入 world.md，剧本每场加`【场景】`；另加人物形象四件套与`【人物】`行（QC 扩展 C11/W10） | e01 回填后 cards/script 校验 0 blocker；新增 evals 全绿；剧本每场有可拍场景描述 | ✅ 完成（2026-11-12，C10/C11/W10 硬闸门；e01–e10 全量回填 0 blocker；evals 59/59 全绿） |
+| W5.2a | 场景视觉层：cards 增 `scene_description`/`props`/`visual_beats`，剧本每场加`【场景】`；人物形象四件套与`【人物】`行（C11/W10）。**v2 扩展（2026-11-12）**：`bible/scenes.yaml` 场景锚点库 + 卡片结构字段 `scene_ref`/`shot_size`/`camera`/`lighting`/`palette` + 剧本 8 标签 + 模糊词黑名单 + `prompt.py` 提示词导出器（C10 v2） | e01 回填后 cards/script 校验 0 blocker；新增 evals 全绿；剧本每场有可拍场景描述；任一集可导出可粘贴生图/生视频提示词 | ✅ 完成（2026-11-12，C10/C11/W10 硬闸门 + C10 v2；e01–e10 全量回填 0 blocker；evals 93/93 全绿） |
 | W5.2b | 分镜表 `episodes/eNN/shots.yaml` + S6.5 指令 + `--stage shots` 校验 | e01 分镜通过校验；总时长 72–108s；每个 visual_beat 有镜头覆盖 | 未开始 |
 | W5.2c | 导出器 `export.py`：拍摄稿/分镜 CSV/道具清单 | 三种格式导出成功；CSV 表头固定、可被表格软件打开 | 未开始 |
 | W5.2d | 受限可写操作（批注/卡片字段/决策日志） | 备份+校验+回滚；越权写被拒；Web 默认只读 | 未开始 |
@@ -148,6 +149,7 @@ projects/<slug>/
 | 2026-11-10 | 新增 Codex 支持：`.agents/skills/story-workbench` 软链到 `.opencode/skill/story-workbench`；`docs/codex.md` + `AGENTS.md` Codex 小节 |
 | 2026-11-11 | W5.2 立项：新增 `docs/w52-storyboard.md`，拆为 W5.2a 场景视觉层 / W5.2b 分镜表 / W5.2c 导出器 / W5.2d 受限可写；确认现有剧本为对白演出稿，场景细节需由 cards 视觉字段 + world.md 注入 + shots.yaml 承载 |
 | 2026-11-12 | QC 硬闸门 C10/C11/W10 落地（用户拍板：全 BLOCKER、全量回填 e01–e10、人物首次出场写一行）：validate.py 新增 `_check_visual_qc`/`performance_text`（描述块不计时长，status/continuity 同步），规则文档与模板同步，5 张人物卡补形象四件套+aliases，e01–e10 cards/script 全量回填，全部 0 blocker；evals 31/31 → 59/59 全绿；continuity 0/0；e02 刘婶 W10-name 留待补人物卡 |
+| 2026-11-12 | C10 v2 场景视觉与提示词层（用户拍板：全套实施 / 新建 `bible/scenes.yaml` / 剧本 8 标签）：上网调研万相·可灵·Seedance·Sora 官方提示词公式后落 `docs/scene-prompt-design.md`；新增场景锚点库（10 常市场景，空间/光线基调/固定色板/环境音/竖屏构图）、`config/fuzzy-words.json` 模糊词黑名单、`scripts/prompt.py` 提示词导出器（锚点+卡片字段+人物四件套 → 生图/生视频提示词，红线字段结构性排除）；validate.py 升级 C10 v2（锚点引用、景别/机位枚举、光线含光+软硬、palette 含锚点固定色、模糊词、剧本 8 标签）；e01–e10 20 场卡与 20 行【场景】全量回填，cards/script 0 blocker，continuity 0/0，evals 59/59 → 93/93 全绿 |
 
 ## 9. 风险与对策
 

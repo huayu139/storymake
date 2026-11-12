@@ -12,6 +12,7 @@ projects/<slug>/
 │   ├── premise.md        # S1 产物：logline + 引擎 + 选择理由
 │   ├── characters/*.yaml # S2 产物：一人一卡
 │   ├── relations.yaml    # S3 产物：关系边数组
+│   ├── scenes.yaml       # 场景锚点库：常市场景的空间/光线/色板（跨集一致性根基）
 │   ├── world.md          # 世界规则（S1/S2 间补充）
 │   └── voice.md          # 文风与禁用词（S1 时确定）
 ├── structure/
@@ -128,6 +129,23 @@ status: planted                 # planted/building/paid/dropped
 description: 行车记录仪的存储卡
 ```
 
+### scenes（bible/scenes.yaml 场景锚点库）
+
+跨集画面一致性的根基：每个常市场景定义一次，场景卡用 `scene_ref` 引用，
+本场只写差异（时段、特殊布置）。QC 见 C10 v2。
+
+```yaml
+scenes:
+  - id: fish-stall                 # 锚点 id（scene_ref 引用它）
+    name: 老周鱼摊（B7）
+    aliases: [老周鱼摊, 老周鱼摊前, 幸福里菜市场 · 老周鱼摊]   # 卡片 location 归一用
+    space: 一排白炽灯照案板，电子秤与鱼摊水箱，泡沫箱沿口结水汽…  # 可拍的空间基因
+    lighting_anchor: 白炽灯顶光偏硬，暖黄；夜里改单盏台灯      # 固定光源语义
+    palette_core: [水泥灰, 暖黄, 泡沫箱白]   # 固定色板：本场 palette 必须全含
+    ambience: 水氧机嗡嗡、刀落案板声         # 环境音（提示词声音三件套）
+    vertical: 竖屏：案板前景、通道纵深        # 9:16 构图提示
+```
+
 ### scene_card（episodes/eNN/cards.yaml 数组元素）
 
 ```yaml
@@ -136,6 +154,11 @@ pov: lin-wan                    # 视角人物
 location: 地下车库
 time: 夜
 cast: [lin-wan, gu-yanchen]
+scene_ref: garage               # bible/scenes.yaml 锚点 id（C10 v2 必填）
+shot_size: 中近景                # 远景/全景/中景/中近景/近景/特写（C10 v2 必填）
+camera: 固定                    # 固定/推/拉/摇/移/跟/环绕/手持（C10 v2 必填）
+lighting: 冷白灯管顶光，柔        # ≥6 字，含「光」+ 软硬词（C10 v2 必填）
+palette: 水泥灰、冷白、暖黄灯影   # ≥4 字，含锚点 palette_core 全部色名（C10 v2 必填）
 scene_description: |          # ≥20 字：时间/地点/物件/风格，可拍（C10 必填）
   深夜的地下车库，灯管嗡嗡响，只有她那辆车顶积着灰，
   远处电梯口的指示灯是唯一的暖色。

@@ -110,6 +110,28 @@ def base_project(n_episodes: int = 2) -> None:
             "never_say": ["你听我解释", "我只是个外人"],
             "visible_from": 1, "version": 1,
         })
+    write(PROJ / "bible/scenes.yaml", {
+        "scenes": [
+            {
+                "id": "garage", "name": "地下车库",
+                "aliases": ["地下车库", "地下库", "小区地下车库 B2 层"],
+                "space": "冷白灯管一排，水泥柱与车位划线，电梯口指示灯",
+                "lighting_anchor": "冷白灯管顶光偏硬",
+                "palette_core": ["水泥灰", "冷白"],
+                "ambience": "灯管嗡嗡、回声",
+                "vertical": "竖屏：车位纵深，人物胸像",
+            },
+            {
+                "id": "market-gate", "name": "菜市场大门口",
+                "aliases": ["菜市场大门口", "市场入口"],
+                "space": "卷帘门与公告栏，单宽通道，白炽灯次第亮",
+                "lighting_anchor": "白炽灯顶光偏硬",
+                "palette_core": ["水泥灰", "暖黄"],
+                "ambience": "吆喝、卸货",
+                "vertical": "竖屏：公告栏纵深",
+            },
+        ],
+    })
     write(PROJ / "bible/relations.yaml", [
         {"from": "lin-wan", "to": "gu-yanchen", "type": "前恋人/对峙",
          "power_diff": "顾彦辰占优（信息）", "dependency": "林晚需要他的资源",
@@ -161,6 +183,10 @@ def good_card(ep: int, dead_cast: list | None = None, value_same: bool = False) 
     return {
         "scene_id": f"e{ep:02d}-sc01", "pov": "lin-wan",
         "location": "地下车库", "time": "夜",
+        "scene_ref": "garage",
+        "shot_size": "中近景", "camera": "固定",
+        "lighting": "冷白灯管顶光，柔",
+        "palette": "水泥灰、冷白、暖黄灯影",
         "scene_description": (
             "深夜的地下车库 B2 层，冷白灯管嗡嗡响，只有她那辆车顶还积着一层灰。"
             "远处电梯口的指示灯是唯一的暖色，水泥地上留着两道新鲜轮胎印，"
@@ -223,7 +249,7 @@ BASE_SCRIPT = """# 第 1 集
 
 【人物】顾彦辰｜个性：把话绕三圈才说重点，永远留一个退路｜外表：35 岁发际线后退，下颌刮得发青，左手无名指有旧戒痕｜穿着：合身深灰夹克，袖扣一丝不苟，鞋尖擦得发亮｜特征：递东西前先在手里转半圈，笑起来只动嘴角
 
-【场景】时间：深夜 ｜ 地点：小区地下车库 B2 层 ｜ 物件：行车记录仪、录音笔、车库门禁卡 ｜ 风格：冷白灯管下的空旷，回声比人声晚半拍
+【场景】时间：深夜 ｜ 地点：小区地下车库 B2 层 ｜ 景别：中近景 ｜ 机位：固定 ｜ 光线：冷白灯管顶光，柔 ｜ 色调：水泥灰、冷白低饱和 ｜ 物件：行车记录仪、录音笔、车库门禁卡 ｜ 风格：写实悬疑质感
 灯管嗡嗡响，只有她那辆车顶还积着一层灰。远处电梯口的指示灯是唯一的暖色，水泥地上留着两道新鲜的轮胎印，风从坡道口灌进来，把塑料袋吹到车轮底下。
 
 【节拍 1】林晚走向自己的车，顾彦辰已经站在电梯口。
@@ -438,6 +464,27 @@ def main() -> int:
         results.append((f"{rule}·{label} exit=1", code == 1, ""))
         restore_card(field, old)
 
+    # C10 v2：锚点引用 / 景别机位枚举 / 光线质感 / 色板漂移 / 模糊词
+    for label, rule, field, broken in [
+        ("缺 scene_ref", "C10-card-ref", "scene_ref", None),
+        ("scene_ref 不存在", "C10-card-ref", "scene_ref", "no-such-anchor"),
+        ("scene_ref 挂错锚点", "C10-card-ref", "scene_ref", "market-gate"),
+        ("shot_size 缺枚举", "C10-card-shot", "shot_size", None),
+        ("shot_size 非法值", "C10-card-shot", "shot_size", "大特写"),
+        ("camera 非法值", "C10-card-shot", "camera", "旋转"),
+        ("lighting 缺失", "C10-card-light", "lighting", None),
+        ("lighting 不含光", "C10-card-light", "lighting", "右侧暖意，柔柔的"),
+        ("lighting 缺软硬", "C10-card-light", "lighting", "右侧暖光照进来"),
+        ("palette 缺锚点固定色", "C10-card-palette", "palette", "暖黄、促销红"),
+        ("scene_description 模糊词", "C10-fuzzy", "scene_description",
+         "深夜的地下车库很有氛围感，一切都那么唯美，仿佛时间静止了一般，冷白灯管在头顶嗡嗡作响。"),
+    ]:
+        old = mutate_card(field, broken)
+        code, out = run_validate("--stage", "cards", "--episode", "1")
+        expect(rule, out, True, label)
+        results.append((f"{rule}·{label} exit=1", code == 1, out[-300:]))
+        restore_card(field, old)
+
     # 人物卡：缺形象四件套
     for field in ["persona", "appearance", "wardrobe", "signature"]:
         cp = PROJ / "bible/characters/lin-wan.yaml"
@@ -467,11 +514,37 @@ def main() -> int:
     expect("C10-script-scene-tags", out, True, "【场景】缺风格")
     results.append(("C10-script-scene-tags exit=1", code == 1, out))
 
-    short_scene = "【场景】时间：深夜 ｜ 地点：地下车库 ｜ 物件：录音笔 ｜ 风格：冷白灯管\n太短。\n\n"
+    short_scene = ("【场景】时间：深夜 ｜ 地点：地下车库 ｜ 景别：中近景 ｜ 机位：固定 ｜ "
+                   "光线：冷白灯管顶光，柔 ｜ 色调：水泥灰、冷白 ｜ 物件：录音笔 ｜ 风格：写实\n太短。\n\n")
     mutate_script(base_script.replace(scene_block, short_scene))
     code, out = run_validate("--stage", "script", "--episode", "1")
     expect("C10-script-scene-body", out, True, "场景描述过短")
     results.append(("C10-script-scene-body exit=1", code == 1, ""))
+
+    # C10 v2 剧本侧：缺镜头标签 / 枚举违规 / 光线质感 / 色调过短 / 模糊词
+    for label, rule, mutate in [
+        ("【场景】缺景别", "C10-script-scene-tags",
+         lambda s: re.sub(r" *｜ *景别：[^｜\n]*", "", s, count=1)),
+        ("景别非法值", "C10-script-shot",
+         lambda s: s.replace("景别：中近景", "景别：大特写", 1)),
+        ("机位非法值", "C10-script-shot",
+         lambda s: s.replace("机位：固定", "机位：旋转", 1)),
+        ("光线缺软硬词", "C10-script-light",
+         lambda s: s.replace("光线：冷白灯管顶光，柔", "光线：冷白灯管顶光", 1)),
+        ("色调过短", "C10-script-palette",
+         lambda s: s.replace("色调：水泥灰、冷白低饱和", "色调：灰", 1)),
+        ("描述段模糊词", "C10-fuzzy", None),
+    ]:
+        if mutate is None:
+            bad_body = scene_block.replace(
+                scene_block.split("\n")[1],
+                scene_block.split("\n")[1] + "灯光下的一切都很有氛围感，唯美得仿佛电影画面。")
+            mutate_script(base_script.replace(scene_block, bad_body))
+        else:
+            mutate_script(mutate(base_script))
+        code, out = run_validate("--stage", "script", "--episode", "1")
+        expect(rule, out, True, label)
+        results.append((f"{rule}·{label} exit=1", code == 1, out[-300:]))
 
     # 剧本：缺【人物】行 / 缺要素
     mutate_script(re.sub(r"【人物】林晚[^\n]*\n", "", base_script))
@@ -487,8 +560,9 @@ def main() -> int:
     # 描述块不计入表演时长（塞进超长【场景】描述，估算秒数必须不变）
     _, clean_out = run_validate("--stage", "script", "--episode", "1")
     clean_sec = (re.search(r"预估时长 (\d+)s", clean_out) or [None, None])[1]
-    pad = "【场景】时间：深夜 ｜ 地点：地下车库 ｜ 物件：录音笔 ｜ 风格：冷白灯管\n" + \
-          ("灯管嗡嗡响，水泥地反着冷光，回声比人声晚半拍。" * 15) + "\n\n"
+    pad = ("【场景】时间：深夜 ｜ 地点：地下车库 ｜ 景别：中近景 ｜ 机位：固定 ｜ "
+           "光线：冷白灯管顶光，柔 ｜ 色调：水泥灰、冷白 ｜ 物件：录音笔 ｜ 风格：写实\n"
+           + ("灯管嗡嗡响，水泥地反着冷光，回声比人声晚半拍。" * 15) + "\n\n")
     mutate_script(base_script.replace(scene_block, scene_block + "\n" + pad))
     code, out = run_validate("--stage", "script", "--episode", "1")
     pad_sec = (re.search(r"预估时长 (\d+)s", out) or [None, None])[1]

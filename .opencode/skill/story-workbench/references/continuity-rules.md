@@ -35,11 +35,28 @@ relation 缺 power_diff/dependency/unsaid/tension；或 power_diff 写成"均等
 ### C9 状态跳变未记录
 人物位置、持有物在相邻集之间无剧本依据地突变（eNN 在车库，eNN+1 无过渡却在家中）→ 至少要有一句交代或记为 warning 由人确认。
 
-### C10 场景详细描述缺失（QC）
-- 人物卡之外，场景卡必须有 `scene_description`（≥20 字，含时间/地点/物件/风格）、`props`（≥1 件，元素带 `id`+`name`）、`visual_beats`（≥2 条）。
-- 剧本每场必须有 `【场景】` 行：`【场景】时间：…｜地点：…｜物件：…｜风格：…`，四要素缺一即违规。
-- `【场景】` 行之后必须有 ≥30 字的**可拍**描述（空间、陈设、光线、声音、气味、人流）。
-- 只写摄影机拍得到的：不写心理活动，不写"仿佛/宛如"式比喻。
+### C10 场景视觉与提示词字段（QC，v2）
+设计依据：`docs/scene-prompt-design.md`（2026-11-12 调研：万相/可灵/Seedance/Sora 官方公式）。
+
+**结构化字段（场景卡必填）**
+- `scene_description` ≥20 字（时间/地点/物件/风格，可拍）、`props` ≥1 件（带 `id`+`name`）、`visual_beats` ≥2 条。
+- `scene_ref` 必须是 `bible/scenes.yaml` 里的锚点 id；`location` 能匹配到某锚点却没引用 → 违规；引用的锚点与 `location` 对不上（alias 无交集）→ 违规。
+- `shot_size` ∈ {远景,全景,中景,中近景,近景,特写}；`camera` ∈ {固定,推,拉,摇,移,跟,环绕,手持}（带"机位/镜头"后缀自动归一）。
+- `lighting` ≥6 字且必须含「光」+ 软硬词（柔/硬/直射/漫射/散射/透）——光线是提示词必填维度。
+- `palette` ≥4 字且必须包含锚点 `palette_core` 的全部色名（防跨集画面漂移）。
+
+**剧本【场景】行 v2（8 标签）**
+- `【场景】时间：…｜地点：…｜景别：…｜机位：…｜光线：…｜色调：…｜物件：…｜风格：…`，缺一即违规；景别/机位走枚举，光线含「光」与软硬词，色调 ≥4 字。
+- 其后仍需 ≥30 字**可拍**描述，来源是卡片 `scene_description`（可压缩，不得新编）。
+
+**模糊词黑名单（C10-fuzzy）**
+- `scene_description` 与剧本描述段命中 `config/fuzzy-words.json`（氛围感/高级感/唯美/仿佛…）即违规：
+  只写摄影机拍得到的可观察描述，不写心理活动，主观模糊词等于没描述。
+
+**提示词导出**
+- `scripts/prompt.py <slug> --episode N [--scene K] [--mode image|video] [--write]`
+  把锚点 + 卡片字段 + 人物形象四件套拼成可直接粘贴的生图/生视频提示词（含 9:16、保持项、负向词）。
+- 红线：`must_not_happen` / `must_not_know` / `hidden` 结构性排除，永不进入提示词。
 
 ### C11 人物描述缺失（QC）
 - 人物卡必须有 `persona`（个性）/ `appearance`（外表）/ `wardrobe`（穿着）/ `signature`（特征），每项 ≥6 字。

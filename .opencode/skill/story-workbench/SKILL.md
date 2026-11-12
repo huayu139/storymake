@@ -138,6 +138,19 @@ description: 长连载故事创作工作台。当用户要创作/开发短剧、
 
 输出 `BLOCKER`（必须修复）、`WARN`（需用户知情）、`OK` 三级。详见 continuity-rules.md。
 
+## 场景提示词导出（给图形生成用）
+
+```bash
+/workspace/tools/miniconda3/bin/python \
+  .opencode/skill/story-workbench/scripts/prompt.py <slug> --episode N [--scene K] [--mode image|video] [--write]
+```
+
+- 把 `bible/scenes.yaml` 锚点 + 场景卡结构字段 + 人物形象四件套拼成可直接粘贴的
+  生图/生视频提示词（含 9:16 竖屏、保持项、负向词）；`--mode video` 追加动作节拍与声音三件套。
+- `--write` 落 `episodes/eNN/prompts.md`。
+- 红线：`must_not_happen` / `must_not_know` / `hidden` 结构性排除，永不进入提示词。
+- 设计与调研依据见 `docs/scene-prompt-design.md`。
+
 ## 回归
 
 修改任何 skill 文件后，必须跑 `evals/run_evals.py`，全绿才算改完。
