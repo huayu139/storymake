@@ -1,7 +1,7 @@
 # Story Lab 创作工作台 · 计划书
 
 > 本文件是唯一进度权威。每完成一步立即更新"进度追踪"表；偏离计划时先改本文件再继续。
-> 最后更新：2026-11-10（W5.1 Web 只读查看器 MVP 完成，0.0.0.0:8765）
+> 最后更新：2026-11-11（W5.2 立项：场景视觉层/分镜/导出/可写，设计见 `docs/w52-storyboard.md`）
 
 ## 1. 一句话定位
 
@@ -58,6 +58,7 @@
 ├── docs/architecture.md        ← 架构说明
 ├── docs/deliverables.md        ← 交付件与外部系统集成说明
 ├── docs/codex.md               ← 在 Codex 中使用本项目的说明
+├── docs/w52-storyboard.md      ← W5.2 场景视觉层/分镜/导出/可写设计
 ├── .opencode/skill/story-workbench/
 │   ├── SKILL.md                ← 主工作流与闸门规则
 │   ├── references/
@@ -118,7 +119,11 @@ projects/<slug>/
 | W3.6 | 项目总览文件 | 每个项目根目录有 PROJECT.md，阶段/集完成后自动刷新；不开 agent 也能看目标/计划/进度 | ✅ 完成（overview.py + status.py --write 同步；PROJECT.md 含目标/五乐章/接下来 3 集/质量风险/文件导航；evals 31/31 全绿） |
 | W4 | 连续性 + 集末状态账本 + 10 集试播 + evals 全绿 | 通读无阻断矛盾；陷阱用例 100% 检出 | ✅ 完成：`continuity.py` + `stage-continuity.md`（K1–K8）；evals 29/29；10 集试播 10/10（e01–e10，continuity 0 BLOCKER/0 WARN）；e08/e09 为 31/32 force_pass，e03 最终验收与 e01 独立复评待用户确认 |
 | W5.1 | Web 只读查看器（MVP） | 浏览器可看总览/分集/单集详情；只读，不改事实源 | ✅ 完成（2026-11-10，`webview.py` + `web/`；7 个 API 端点与 7 个视图，绑定 0.0.0.0:8765） |
-| W5.2（后续） | 分镜/剧本格式导出/可写操作 | 另行定义 | 未开始 |
+| W5.2 | 场景视觉层 · 分镜 · 导出 · 可写（立项） | 设计文档落地，四个子阶段可独立验收 | 🚧 立项完成（2026-11-11，`docs/w52-storyboard.md`；实施未开始） |
+| W5.2a | 场景视觉层：cards 增 `scene_description`/`props`/`visual_beats`，S6 注入 world.md，剧本每场加`【场景】` | e01 回填后 cards/script 校验 0 blocker；新增 evals 全绿；剧本每场有可拍场景描述 | 未开始 |
+| W5.2b | 分镜表 `episodes/eNN/shots.yaml` + S6.5 指令 + `--stage shots` 校验 | e01 分镜通过校验；总时长 72–108s；每个 visual_beat 有镜头覆盖 | 未开始 |
+| W5.2c | 导出器 `export.py`：拍摄稿/分镜 CSV/道具清单 | 三种格式导出成功；CSV 表头固定、可被表格软件打开 | 未开始 |
+| W5.2d | 受限可写操作（批注/卡片字段/决策日志） | 备份+校验+回滚；越权写被拒；Web 默认只读 | 未开始 |
 
 **第一版可演示目标**：对话从零走到一集完整剧本，产出 5 类文件 + 决策日志 + 评审报告，全部通过 validate.py。
 
@@ -141,6 +146,7 @@ projects/<slug>/
 | 2026-11-10 | W5.1 完成：新增 `scripts/webview.py`（Python 标准库只读 HTTP 服务，复用 status.py/continuity.py）+ `web/` 零依赖前端；7 个 API 端点，总览/分集/单集/圣经/结构/连续性/决策 7 个视图；默认 0.0.0.0:8765 |
 | 2026-11-10 | 新增 `docs/deliverables.md`：面向外部系统的交付件清单、字段契约、三种集成方式、Web API、兼容约定与消费前自检 |
 | 2026-11-10 | 新增 Codex 支持：`.agents/skills/story-workbench` 软链到 `.opencode/skill/story-workbench`；`docs/codex.md` + `AGENTS.md` Codex 小节 |
+| 2026-11-11 | W5.2 立项：新增 `docs/w52-storyboard.md`，拆为 W5.2a 场景视觉层 / W5.2b 分镜表 / W5.2c 导出器 / W5.2d 受限可写；确认现有剧本为对白演出稿，场景细节需由 cards 视觉字段 + world.md 注入 + shots.yaml 承载 |
 
 ## 9. 风险与对策
 
