@@ -216,6 +216,13 @@ scripts/push.sh
 GIT_SSH_COMMAND="$PWD/.keys/git-ssh.sh" git push
 ```
 
+- **`git fetch` / `git pull` 同样需要带包装器**，否则会回落到默认 `~/.ssh`（本机 `HOME` 无密钥）：
+
+```bash
+GIT_SSH_COMMAND="$PWD/.keys/git-ssh.sh" git fetch --all
+GIT_SSH_COMMAND="$PWD/.keys/git-ssh.sh" git pull
+```
+
 - 迁移到新机器用整目录复制（`rsync` / `tar` / `scp`）；只做 `git clone` 不会带上 `.keys/`。
 - `.keys/` 丢失时重新生成：`ssh-keygen -t ed25519 -N '' -C storymake-deploy -f .keys/id_ed25519_storymake`，再到仓库 Settings → Keys 登记公钥。
 
