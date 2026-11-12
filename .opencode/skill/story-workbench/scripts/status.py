@@ -86,11 +86,13 @@ _DIRECTIVE_RE = re.compile(
     r"|^【人物】[^\n]*\n?",               # 【人物】行
     flags=re.S | re.M,
 )
+_CAST_LINE_RE = re.compile(r"(?m)^(## 场景 [^\n]*)\n（[^\n]*）\n?")   # 在场行（说明）
 
 
 def performance_text(text: str) -> str:
-    """与 validate.py 一致：扣除【场景】【人物】说明块，只留表演正文计时。"""
-    return _DIRECTIVE_RE.sub("", text or "")
+    """与 validate.py 一致：扣除【场景】【人物】【在场行】说明块，只留表演正文计时。"""
+    t = _DIRECTIVE_RE.sub("", text or "")
+    return _CAST_LINE_RE.sub(r"\1\n", t)
 
 
 def as_int(value, default=0) -> int:

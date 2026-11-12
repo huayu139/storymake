@@ -150,6 +150,7 @@ projects/<slug>/
 | 2026-11-11 | W5.2 立项：新增 `docs/w52-storyboard.md`，拆为 W5.2a 场景视觉层 / W5.2b 分镜表 / W5.2c 导出器 / W5.2d 受限可写；确认现有剧本为对白演出稿，场景细节需由 cards 视觉字段 + world.md 注入 + shots.yaml 承载 |
 | 2026-11-12 | QC 硬闸门 C10/C11/W10 落地（用户拍板：全 BLOCKER、全量回填 e01–e10、人物首次出场写一行）：validate.py 新增 `_check_visual_qc`/`performance_text`（描述块不计时长，status/continuity 同步），规则文档与模板同步，5 张人物卡补形象四件套+aliases，e01–e10 cards/script 全量回填，全部 0 blocker；evals 31/31 → 59/59 全绿；continuity 0/0；e02 刘婶 W10-name 留待补人物卡 |
 | 2026-11-12 | C10 v2 场景视觉与提示词层（用户拍板：全套实施 / 新建 `bible/scenes.yaml` / 剧本 8 标签）：上网调研万相·可灵·Seedance·Sora 官方提示词公式后落 `docs/scene-prompt-design.md`；新增场景锚点库（10 常市场景，空间/光线基调/固定色板/环境音/竖屏构图）、`config/fuzzy-words.json` 模糊词黑名单、`scripts/prompt.py` 提示词导出器（锚点+卡片字段+人物四件套 → 生图/生视频提示词，红线字段结构性排除）；validate.py 升级 C10 v2（锚点引用、景别/机位枚举、光线含光+软硬、palette 含锚点固定色、模糊词、剧本 8 标签）；e01–e10 20 场卡与 20 行【场景】全量回填，cards/script 0 blocker，continuity 0/0，evals 59/59 → 93/93 全绿 |
+| 2026-11-12 | 遗留补齐：新建刘婶（liu-shen）、阿贵（a-gui）人物卡（五件套+形象四件套+voice_samples/never_say+aliases），e02/e04/e05 剧本补【人物】行与在场行（e04 两场、e05 场1 加阿贵），relations 补 zhou-liping→a-gui/liu-shen 两条边消 C8；`performance_text()` 三脚本（validate/status/continuity）扣除在场行，evals 新增「在场行不计时长」用例 → 94/94 全绿；e01 独立复评 33/32 approved、e03 最终验收 34/32 approved（均全新上下文 Critic，0 blocker，warning 入 optional_polish 不改剧本），decisions.jsonl 补两条留痕；e08/e09 force_pass 留痕核对无需补；e01–e10 cards/script/review 全 0 blocker，continuity 0/0 |
 
 ## 9. 风险与对策
 

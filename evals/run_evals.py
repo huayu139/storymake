@@ -569,6 +569,16 @@ def main() -> int:
     results.append(("描述块不计时长（秒数不变）",
                     code == 0 and clean_sec is not None and pad_sec == clean_sec,
                     f"clean={clean_sec} pad={pad_sec}\n{out}"))
+
+    # 在场行（谁在场）也是说明，不计入表演时长：加长在场行秒数必须不变
+    m_cast = re.search(r"(?m)^## 场景 [^\n]*\n（[^\n]*）", base_script)
+    long_cast = m_cast.group(0)[:-1] + "、群演甲、群演乙、群演丙）"
+    mutate_script(base_script.replace(m_cast.group(0), long_cast))
+    code, out = run_validate("--stage", "script", "--episode", "1")
+    cast_sec = (re.search(r"预估时长 (\d+)s", out) or [None, None])[1]
+    results.append(("在场行不计时长（秒数不变）",
+                    code == 0 and clean_sec is not None and cast_sec == clean_sec,
+                    f"clean={clean_sec} cast={cast_sec}\n{out}"))
     s10c.write_text(base_script, encoding="utf-8")
 
     # 恢复后整包必须全绿
